@@ -11,15 +11,17 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
-    "expo": "^53.0.8",
+    "expo": "^53.0.9",
     "expo-router": "^5.0.6",
     "expo-status-bar": "~2.2.3",
     "nativewind": "^4.1.23",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-appwrite": "^0.7.3",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
+    "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.20.0"
   },
   "devDependencies": {
