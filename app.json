@@ -3,6 +3,7 @@
     "name": "Aora",
     "slug": "aora",
     "version": "1.0.0",
+    "scheme": "aora",
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -10,7 +11,14 @@
       "tsconfigPaths": true
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ]
     ],
     "orientation": "defualt",
     "icon": "./assets/icon.png",

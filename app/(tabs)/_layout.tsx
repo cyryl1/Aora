@@ -19,9 +19,9 @@ const TabIcon = ({ icon, color, name, focused }: TabIconProps) => {
         resizeMode="contain"
         tintColor={color}
         // className="w-6 h-6"
-        style={{ width: 24, height: 24 }}
+        style={{ width: 26, height: 26 }}
       />
-      <Text className={`${focused ? 'font-psemibold' : 'font-pregular'} text-xs`} style={{ color }}>
+      <Text className={`${focused ? 'font-psemibold' : 'font-pregular'} text-[.5rem]`} style={{ color }}>
         {name}
       </Text>
     </View>
@@ -38,7 +38,7 @@ const TabsLayout = () => {
           tabBarInactiveTintColor: '#CDCDE0',
           tabBarStyle: {
             backgroundColor: '#161622',
-            borderTopWidth: 1,
+            borderTopWidth: 12,
             borderTopColor: '#232533',
             height: 84,
           },
