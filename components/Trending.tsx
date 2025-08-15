@@ -1,9 +1,22 @@
-import { Alert, Button, FlatList, Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import * as Animatable from 'react-native-animatable'
+import { Alert, FlatList, Image, ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState, memo } from 'react';
+import * as Animatable from 'react-native-animatable';
 import { icons } from '../constants';
-import { useVideoPlayer, VideoPlayer, VideoView, StatusChangeEventPayload } from 'expo-video';
-import { useEvent, useEventListener } from 'expo';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEvent } from 'expo';
+
+interface Post {
+  $id: string;
+  title: string;
+  thumbnail: string;
+  video: string;
+  creator: { username: string; avatar: string };
+}
+
+interface TrendingItemProps {
+  activeItem: string;
+  item: Post;
+}
 
 const zoomIn: Animatable.CustomAnimation = {
   0: { transform: [{ scale: 0.9 }] },
@@ -15,41 +28,73 @@ const zoomOut: Animatable.CustomAnimation = {
   1: { transform: [{ scale: 0.9 }] },
 };
 
-
-
 const TrendingItem: React.FC<TrendingItemProps> = ({ activeItem, item }) => {
-  // const videoSource = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-  // const player: VideoPlayer = useVideoPlayer(videoSource, (player: VideoPlayer) => {
-  //   player.loop = true;
-  //   // player.play();
-  // });
-
-  // const { isPlaying }: { isPlaying: boolean } = useEvent(player, 'playingChange', { isPlaying: player.playing });
-
   const [play, setPlay] = useState(false);
-  const player: VideoPlayer = useVideoPlayer(play ?  item.video: null, (player: VideoPlayer) => {
-    if (play) {
-      player.play();
-    }
-  });
+  // const [player, setPlayer] = useState<ReturnType<typeof useVideoPlayer> | null>(null);
 
-  useEventListener(player, 'statusChange', ({ status, error }: StatusChangeEventPayload) => {
-    if (status === 'idle') {
-      setPlay(false);
-      player.pause();
-      if (error) {
-        Alert.alert('Error', (error as Error).message);
+  const player = useVideoPlayer(item.video, player => {
+    player.loop = true;
+    player.play();
+  });
+  
+  const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+  
+  useEffect(() => {
+    if (play) {
+      try {
+        player.play();
+      } catch (error) {
+        console.warn(`Error playing video ${item.$id}:`, error);
+        Alert.alert('Error', 'Failed to play video');
+        setPlay(false);
+      }
+    } else {
+      try {
+        player.pause();
+      } catch (error) {
+        console.warn(`Error pausing video ${item.$id}:`, error);
       }
     }
-  });
+  }, [play, item.$id, player]);
+
+  // Handle player errors
+  useEffect(() => {
+    if (!player) return;
+    const subscription = player.addListener('statusChange', ({ status, error }) => {
+      if (status === 'error' && error) {
+        Alert.alert('Error', error.message || 'Trending video failed to load');
+        setPlay(false);
+      }
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   // Stop playing when item is no longer active
   useEffect(() => {
-    if (activeItem !== item.$id && play) {
-      setPlay(false);
-      player?.pause();
+    if (activeItem !== item.$id && play && player) {
+      try {
+        player.pause();
+        setPlay(false);
+      } catch (error) {
+        console.warn(`Error pausing trending video ${item.$id}:`, error);
+      }
     }
-  }, [activeItem, item.$id]);
+  }, [activeItem, item.$id, player]);
+
+  // Clean up player on unmount
+  // useEffect(() => {
+  //   return () => {
+  //     if (player && player.status !== 'error') {
+  //       try {
+  //         player.pause();
+  //         player.replace(null);
+  //       } catch (error) {
+  //         console.warn(`Error cleaning up trending video ${item.$id}:`, error);
+  //       }
+  //     }
+  //   };
+  // }, [player, item.$id]);
+
   return (
     <Animatable.View
       className="mr-5"
@@ -57,16 +102,14 @@ const TrendingItem: React.FC<TrendingItemProps> = ({ activeItem, item }) => {
       duration={500}
     >
       <View style={{ width: 208, height: 288, marginTop: 12 }}>
-        {play ? (
-          <VideoView 
-            style={{ width: '100%', height: '100%', borderRadius: 35, backgroundColor: 'rgba(255, 255, 255, 0.1' }}
+        {play && player ? (
+          <VideoView
+            style={{ width: '100%', height: '100%', borderRadius: 35, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
             player={player}
-            contentFit='cover'
-            nativeControls={false}
-            // onEnd={() => {
-            //   setPlay(false);
-            //   player?.pause();
-            // }}
+            contentFit="cover"
+            allowsFullscreen 
+            // allowsPictureInPicture 
+            // nativeControls={false}
           />
         ) : (
           <TouchableOpacity
@@ -75,13 +118,10 @@ const TrendingItem: React.FC<TrendingItemProps> = ({ activeItem, item }) => {
             onPress={() => setPlay(true)}
           >
             <ImageBackground
-              source={{
-                uri: item.thumbnail,
-              }}
+              source={{ uri: item.thumbnail }}
               className="w-52 h-72 rounded-[33px] my-5 overflow-hidden shadow-lg shadow-black/40"
               resizeMode="cover"
             />
-
             <Image
               source={icons.play}
               className="w-12 h-12 absolute"
@@ -94,30 +134,29 @@ const TrendingItem: React.FC<TrendingItemProps> = ({ activeItem, item }) => {
   );
 };
 
-const Trending = ({ posts }: { posts: Post[] }) => {
-  const [activeItem, setActiveItem] = useState(posts[0]?.$id || "")
+const Trending: React.FC<{ posts: Post[] }> = ({ posts }) => {
+  const [activeItem, setActiveItem] = useState(posts[0]?.$id || '');
 
   const viewableItemsChange = ({ viewableItems }: { viewableItems: Array<{ key: string }> }) => {
-    if(viewableItems.length > 0) {
+    if (viewableItems.length > 0) {
       setActiveItem(viewableItems[0].key);
     }
-  }
+  };
+
   return (
-    <FlatList 
+    <FlatList
       data={posts}
       keyExtractor={(item) => item.$id}
-      renderItem={({ item }) => (
-          <TrendingItem activeItem={activeItem} item={item} />
-          // <VideoScreen />
-      )}
+      renderItem={({ item }) => <TrendingItem activeItem={activeItem} item={item} />}
       onViewableItemsChanged={viewableItemsChange}
       viewabilityConfig={{
-        itemVisiblePercentThreshold: 70
+        itemVisiblePercentThreshold: 70,
       }}
       contentOffset={{ x: 170, y: 0 }}
       horizontal
+      showsHorizontalScrollIndicator={false}
     />
-  )
-}
+  );
+};
 
 export default Trending;

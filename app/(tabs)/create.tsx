@@ -18,7 +18,7 @@ const Create = () => {
   const [uploading, setUploading] = useState(false)
   const [form, setForm] = useState<{
     title: string;
-    video: string | null;
+    video: any | null;
     thumbnail: { uri: string } | null;
     prompt: string;
   }>({
@@ -29,12 +29,6 @@ const Create = () => {
   });
 
   const openPicker = async (selectType: string) => {
-    // const result = await DocumentPicker.getDocumentAsync({
-    //   type: selectType === 'image' 
-    //     ? ['image/png', 'image/jpg', 'image/jpeg'] 
-    //     : ['video/mp4', 'video/gif']
-    // })
-    // If error extension not allowed, go to appwrite webapp -> storage -> files -> settings -> add jpeg to the "Allowed filed Extension"
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images', 'videos'],
       aspect: [4, 3],
@@ -47,21 +41,20 @@ const Create = () => {
       }
 
       if(selectType === 'video') {
-        setForm({ ...form, video: result.assets[0].uri }) //Confirm in case of error, if i need to add .uri or not
+        setForm({ ...form, video: result.assets[0] }) //Confirm in case of error, if i need to add .uri or not
       }
       
     }
 
-    // } else {
-    //   setTimeout(() => {
-    //     Alert.alert('Document picked', JSON.stringify(result, null, 2))
-    //   }, 100)
-    // }
   }
 
   const submit = async () => {
     if(!form.title || !form.thumbnail || !form.video || !form.prompt) {
       return Alert.alert('Please fill in all the fields')
+    }
+
+    if (!user || !user.$id) {
+      return Alert.alert('Error', 'User not logged in. Please sign in first.');
     }
 
     setUploading(true)
@@ -116,7 +109,8 @@ const Create = () => {
           </Text>
           <TouchableOpacity onPress={() => openPicker('video')}>
             {form.video ? (
-              <VideoView 
+              <VideoView
+                style={{ width: 400, height: 240, marginTop: 12 }}
                 player={player}
                 className='w-full h-64 rounded-2xl'
                 allowsFullscreen
@@ -176,7 +170,7 @@ const Create = () => {
           title='Submit & Publish'
           handlePress={submit}
           containerStyles='mt-7'
-          isLoading={uploading}
+          isLoading={uploading || !user}
         />
       </ScrollView>
     </SafeAreaView>
