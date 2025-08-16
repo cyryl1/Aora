@@ -33,7 +33,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "package": "com.wiseman.aora"
+      "package": "com.wiseman.aora",
+      "bundleIdentifier": "com.wiseman.aora",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
